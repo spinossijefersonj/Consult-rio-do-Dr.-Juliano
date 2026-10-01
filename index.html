@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultório Odontológico - Dr. Juliano</title>
+    <!-- Tailwind CSS para estilização rápida -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Biblioteca do Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="w-full max-w-md bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700">
+        
+        <!-- Cabeçalho / Logo -->
+        <div class="text-center mb-6">
+            <div class="w-16 h-16 bg-sky-500/10 border border-sky-500/30 rounded-full flex items-center justify-center mx-auto mb-3 text-sky-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight">DR. JULIANO</h1>
+            <p class="text-xs uppercase tracking-widest text-sky-400 font-semibold mt-1">Consultório Odontológico</p>
+        </div>
+
+        <!-- Abas de Navegação -->
+        <div class="flex bg-slate-900 p-1 rounded-xl mb-6 text-sm">
+            <button onclick="mudarAba('marcar')" id="btn-marcar" class="flex-1 py-2 rounded-lg font-medium bg-sky-500 text-white transition">Marcar</button>
+            <button onclick="mudarAba('horarios')" id="btn-horarios" class="flex-1 py-2 rounded-lg font-medium text-slate-400 hover:text-white transition">Meus Horários</button>
+            <button onclick="mudarAba('admin')" id="btn-admin" class="flex-1 py-2 rounded-lg font-medium text-slate-400 hover:text-white transition">Área do Dr.</button>
+        </div>
+
+        <!-- CONTEÚDO: MARCAR CONSULTA -->
+        <div id="secao-marcar" class="space-y-4">
+            <p class="text-xs text-slate-400 text-center mb-2">Agende sua consulta odontológica</p>
+            
+            <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Nome Completo</label>
+                <input type="text" id="input-nome" placeholder="Ex: Ana Paula Souza" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">WhatsApp (com DDD)</label>
+                <input type="text" id="input-whatsapp" placeholder="(19) 99999-9999" maxlength="15" oninput="mascaraTelefone(this)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Data da Consulta</label>
+                <input type="date" id="input-data" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Horário Disponível</label>
+                <select id="select-horario" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500">
+                    <option value="">Selecione uma data primeiro</option>
+                </select>
+                <p id="aviso-status" class="text-xs text-red-400 mt-1"></p>
+            </div>
+
+            <button onclick="confirmarAgendamento()" class="w-full mt-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold py-3 rounded-xl transition shadow-lg shadow-sky-500/20">
+                Confirmar Agendamento
+            </button>
+        </div>
+
+        <!-- CONTEÚDO: MEUS HORÁRIOS (BUSCA POR WHATSAPP) -->
+        <div id="secao-horarios" class="hidden space-y-4">
+            <p class="text-xs text-slate-400 text-center mb-2">Consulte seus agendamentos ativos</p>
+            <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Informe seu WhatsApp</label>
+                <input type="text" id="busca-whatsapp" placeholder="(19) 99999-9999" maxlength="15" oninput="mascaraTelefone(this)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500">
+            </div>
+            <button onclick="buscarAgendamentos()" class="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold py-2.5 rounded-xl transition">
+                Pesquisar Horários
+            </button>
+            <div id="lista-meus-horarios" class="mt-4 space-y-2 text-sm"></div>
+        </div>
+
+        <!-- CONTEÚDO: ÁREA DO DR. -->
+        <div id="secao-admin" class="hidden space-y-4">
+            <div id="admin-login">
+                <p class="text-xs text-slate-400 text-center mb-2">Acesso restrito ao profissional</p>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Senha de Acesso</label>
+                <input type="password" id="input-senha" placeholder="Senha do Doutor" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500 mb-3">
+                <button onclick="loginAdmin()" class="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold py-2.5 rounded-xl transition">
+                    Entrar no Painel
+                </button>
+            </div>
+            <div id="admin-painel" class="hidden space-y-3">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-sky-400">Painel do Dr. Juliano</h3>
+                    <button onclick="logoutAdmin()" class="text-xs text-red-400 hover:underline">Sair</button>
+                </div>
+                
+                <!-- Abas internas do Painel Admin -->
+                <div class="flex bg-slate-900 p-1 rounded-lg text-xs">
+                    <button onclick="mudarAbaAdmin('consultas')" id="tab-admin-consultas" class="flex-1 py-1.5 rounded-md font-medium bg-slate-700 text-white transition">Consultas</button>
+                    <button onclick="mudarAbaAdmin('bloqueios')" id="tab-admin-bloqueios" class="flex-1 py-1.5 rounded-md font-medium text-slate-400 hover:text-white transition">Gerenciar Bloqueios</button>
+                </div>
+
+                <!-- SUBPAINEL: CONSULTAS -->
+                <div id="painel-consultas-admin" class="space-y-2">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Ver Consultas do Dia:</label>
+                        <input type="date" id="admin-data-filtro" onchange="carregarConsultasAdmin()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white">
+                    </div>
+                    <div id="admin-lista-consultas" class="mt-2 space-y-2 max-h-52 overflow-y-auto text-xs"></div>
+                </div>
+
+                <!-- SUBPAINEL: BLOQUEIOS -->
+                <div id="painel-bloqueios-admin" class="hidden space-y-2">
+                    <p class="text-xs text-slate-400">Bloquear um dia inteiro ou horário específico:</p>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Data a Bloquear:</label>
+                        <input type="date" id="admin-data-bloqueio" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">Horário (Deixe em branco para bloquear o dia todo):</label>
+                        <select id="admin-horario-bloqueio" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white">
+                            <option value="">-- O Dia Inteiro --</option>
+                            <option value="08:00">08:00</option>
+                            <option value="09:00">09:00</option>
+                            <option value="10:00">10:00</option>
+                            <option value="11:00">11:00</option>
+                            <option value="13:30">13:30</option>
+                            <option value="14:30">14:30</option>
+                            <option value="15:30">15:30</option>
+                            <option value="16:30">16:30</option>
+                        </select>
+                    </div>
+                    <button onclick="bloquearHorarioOuDia()" class="w-full bg-red-500 hover:bg-red-400 text-slate-950 font-bold py-2 rounded-xl transition text-xs mt-1">
+                        Confirmar Bloqueio
+                    </button>
+                    <hr class="border-slate-700 my-2">
+                    <p class="text-xs font-bold text-slate-300 mt-2">Bloqueios Ativos:</p>
+                    <div id="admin-lista-bloqueios" class="mt-1 space-y-1.5 max-h-36 overflow-y-auto text-xs"></div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Script de Conexão e Lógica -->
+    <script>
+        // --- CONFIGURAÇÃO DO SUPABASE ---
+        const SUPABASE_URL = 'https://twfpefjuwggktkyvqwhc.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_uxHpeu2SOxPef98adeAZMw_Hdlt9yFE'; 
+        const SENHA_DR = 'drjuliano123';
+
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+            auth: { persistSession: false }
+        });
+
+        function mascaraTelefone(input) {
+            let valor = input.value.replace(/\D/g, '');
+            if (valor.length > 11) valor = valor.substring(0, 11);
+            
+            if (valor.length > 6) {
+                valor = `(${valor.substring(0, 2)}) ${valor.substring(2, 7)}-${valor.substring(7)}`;
+            } else if (valor.length > 2) {
+                valor = `(${valor.substring(0, 2)}) ${valor.substring(2)}`;
+            } else if (valor.length > 0) {
+                valor = `(${valor}`;
+            }
+            input.value = valor;
+        }
+
+        function mudarAba(aba) {
+            ['marcar', 'horarios', 'admin'].forEach(a => {
+                document.getElementById(`secao-${a}`).classList.add('hidden');
+                document.getElementById(`btn-${a}`).className = "flex-1 py-2 rounded-lg font-medium text-slate-400 hover:text-white transition";
+            });
+            document.getElementById(`secao-${aba}`).classList.remove('hidden');
+            document.getElementById(`btn-${aba}`).className = "flex-1 py-2 rounded-lg font-medium bg-sky-500 text-white transition";
+        }
+
+        function mudarAbaAdmin(subaba) {
+            ['consultas', 'bloqueios'].forEach(s => {
+                document.getElementById(`painel-${s}-admin`).classList.add('hidden');
+                document.getElementById(`tab-admin-${s}`).className = "flex-1 py-1.5 rounded-md font-medium text-slate-400 hover:text-white transition";
+            });
+            document.getElementById(`painel-${subaba}-admin`).classList.remove('hidden');
+            document.getElementById(`tab-admin-${subaba}`).className = "flex-1 py-1.5 rounded-md font-medium bg-slate-700 text-white transition";
+            
+            if (subaba === 'bloqueios') carregarListaBloqueios();
+        }
+
+        const hoje = new Date().toISOString().split('T')[0];
+        document.getElementById('input-data').min = hoje;
+        document.getElementById('input-data').value = hoje;
+        document.getElementById('admin-data-filtro').value = hoje;
+        document.getElementById('admin-data-bloqueio').value = hoje;
+
+        document.getElementById('input-data').addEventListener('change', carregarHorariosDisponiveis);
+
+        async function carregarHorariosDisponiveis() {
+            const dataSelecionada = document.getElementById('input-data').value;
+            const select = document.getElementById('select-horario');
+            const aviso = document.getElementById('aviso-status');
+            
+            select.innerHTML = '<option value="">A carregar horários...</option>';
+            aviso.textContent = '';
+
+            const horariosPadrao = ['08:00', '09:00', '10:00', '11:00', '13:30', '14:30', '15:30', '16:30'];
+
+            try {
+                const [resConsultas, resBloqueios] = await Promise.all([
+                    _supabase.from('consultas').select('data_horario').or('status.is.null,status.neq.finalizada'),
+                    _supabase.from('horarios_bloqueados').select('*').eq('data_bloqueio', dataSelecionada)
+                ]);
+
+                if (resConsultas.error) throw resConsultas.error;
+                if (resBloqueios.error) throw resBloqueios.error;
+
+                const diaBloqueadoTotal = resBloqueios.data.some(b => b.horario_bloqueio === null);
+                if (diaBloqueadoTotal) {
+                    select.innerHTML = '<option value="">Dr. não atendimento nesta data (Bloqueado)</option>';
+                    return;
+                }
+
+                const horariosBloqueadosUnidade = resBloqueios.data
+                    .filter(b => b.horario_bloqueio !== null)
+                    .map(b => b.horario_bloqueio);
+
+                const ocupados = resConsultas.data.map(c => {
+                    const partes = c.data_horario.split('T');
+                    const dataPart = partes[0];
+                    const horaPart = partes[1] ? partes[1].substring(0, 5) : '';
+                    return { data: dataPart, hora: horaPart };
+                })
+                .filter(c => c.data === dataSelecionada)
+                .map(c => c.hora);
+
+                const indisponiveis = [...ocupados, ...horariosBloqueadosUnidade];
+                const disponiveis = horariosPadrao.filter(h => !indisponiveis.includes(h));
+
+                select.innerHTML = '';
+                if (disponiveis.length === 0) {
+                    select.innerHTML = '<option value="">Nenhum horário disponível neste dia</option>';
+                } else {
+                    disponiveis.forEach(h => {
+                        const opt = document.createElement('option');
+                        opt.value = h;
+                        opt.textContent = h;
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (err) {
+                console.error("Erro:", err);
+                aviso.textContent = 'Erro ao ler banco de dados.';
+                select.innerHTML = '<option value="">Erro ao carregar</option>';
+            }
+        }
+
+        async function confirmarAgendamento() {
+            const nome = document.getElementById('input-nome').value.trim();
+            const whatsapp = document.getElementById('input-whatsapp').value.trim();
+            const data = document.getElementById('input-data').value;
+            const horario = document.getElementById('select-horario').value;
+
+            if (!nome || !whatsapp || !data || !horario) {
+                alert('Por favor, preencha todos os campos.');
+                return;
+            }
+
+            const dataHorarioCompleto = `${data}T${horario}:00`;
+
+            try {
+                const { error } = await _supabase.from('consultas').insert([
+                    { cliente_nome: nome, cliente_whatsapp: whatsapp, data_horario: dataHorarioCompleto, status: 'ativa' }
+                ]);
+
+                if (error) throw error;
+
+                alert('Consulta agendada com sucesso!');
+                document.getElementById('input-nome').value = '';
+                document.getElementById('input-whatsapp').value = '';
+                carregarHorariosDisponiveis();
+            } catch (err) {
+                console.error(err);
+                alert('Erro ao realizar agendamento. Tente novamente.');
+            }
+        }
+
+        async function buscarAgendamentos() {
+            const wppInput = document.getElementById('busca-whatsapp').value.trim();
+            const container = document.getElementById('lista-meus-horarios');
+            container.innerHTML = 'A pesquisar...';
+
+            if (!wppInput) {
+                container.innerHTML = '<p class="text-red-400">Insira o número de WhatsApp.</p>';
+                return;
+            }
+
+            const wppNumerosDigitado = wppInput.replace(/\D/g, '');
+
+            try {
+                const { data, error } = await _supabase
+                    .from('consultas')
+                    .select('*')
+                    .or('status.is.null,status.neq.finalizada');
+
+                if (error) throw error;
+
+                const filtradas = data.filter(c => {
+                    const wppSalvoNumeros = (c.cliente_whatsapp || '').replace(/\D/g, '');
+                    return wppSalvoNumeros === wppNumerosDigitado;
+                });
+
+                container.innerHTML = '';
+                if (filtradas.length === 0) {
+                    container.innerHTML = '<p class="text-slate-400">Nenhum agendamento ativo encontrado para este número.</p>';
+                    return;
+                }
+
+                filtradas.forEach(c => {
+                    const partes = c.data_horario.split('T');
+                    const dataPartes = partes[0].split('-');
+                    const dataFormatada = `${dataPartes[2]}/${dataPartes[1]}/${dataPartes[0]}`;
+                    const horaFormatada = partes[1] ? partes[1].substring(0, 5) : '';
+
+                    const div = document.createElement('div');
+                    div.className = "bg-slate-900 p-3 rounded-xl border border-slate-700 flex justify-between items-center";
+                    div.innerHTML = `<div><p class="font-bold text-sky-400">${dataFormatada} às ${horaFormatada}</p><p class="text-slate-400 text-xs">${c.cliente_nome}</p></div>`;
+                    container.appendChild(div);
+                });
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<p class="text-red-400">Erro ao buscar agendamentos.</p>';
+            }
+        }
+
+        function loginAdmin() {
+            const senha = document.getElementById('input-senha').value;
+            if (senha === SENHA_DR) {
+                document.getElementById('admin-login').classList.add('hidden');
+                document.getElementById('admin-painel').classList.remove('hidden');
+                carregarConsultasAdmin();
+            } else {
+                alert('Senha incorreta.');
+            }
+        }
+
+        function logoutAdmin() {
+            document.getElementById('input-senha').value = '';
+            document.getElementById('admin-login').classList.remove('hidden');
+            document.getElementById('admin-painel').classList.add('hidden');
+        }
+
+        async function carregarConsultasAdmin() {
+            const dataFiltro = document.getElementById('admin-data-filtro').value;
+            const container = document.getElementById('admin-lista-consultas');
+            container.innerHTML = 'A carregar...';
+
+            try {
+                const { data, error } = await _supabase
+                    .from('consultas')
+                    .select('*')
+                    .or('status.is.null,status.neq.finalizada')
+                    .order('data_horario', { ascending: true });
+
+                if (error) throw error;
+
+                const filtrados = data.filter(c => c.data_horario.startsWith(dataFiltro));
+
+                container.innerHTML = '';
+                if (filtrados.length === 0) {
+                    container.innerHTML = '<p class="text-slate-400">Sem consultas agendadas para esta data.</p>';
+                    return;
+                }
+
+                filtrados.forEach(c => {
+                    const hora = c.data_horario.split('T')[1].substring(0, 5);
+                    const div = document.createElement('div');
+                    div.className = "bg-slate-900 p-2.5 rounded-lg border border-slate-700 flex justify-between items-center";
+                    div.innerHTML = `
+                        <div>
+                            <span class="font-bold text-sky-400">${hora}</span> - <span class="text-white">${c.cliente_nome}</span> 
+                            <br><span class="text-slate-400 text-[10px]">${c.cliente_whatsapp}</span>
+                        </div>
+                        <button onclick="finalizarAtendimento(${c.id})" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-2.5 py-1 rounded-md text-[10px] transition">
+                            Finalizar
+                        </button>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<p class="text-red-400">Erro ao carregar painel.</p>';
+            }
+        }
+
+        async function finalizarAtendimento(idConsulta) {
+            if (!confirm('Deseja realmente finalizar este atendimento?')) return;
+
+            try {
+                const { error } = await _supabase
+                    .from('consultas')
+                    .update({ status: 'finalizada' })
+                    .eq('id', idConsulta);
+
+                if (error) throw error;
+                
+                // Atualiza a lista instantaneamente mantendo a mesma data selecionada
+                await carregarConsultasAdmin();
+            } catch (err) {
+                console.error(err);
+                alert('Erro ao finalizar atendimento.');
+            }
+        }
+
+        async function bloquearHorarioOuDia() {
+            const dataBloqueio = document.getElementById('admin-data-bloqueio').value;
+            const horarioBloqueio = document.getElementById('admin-horario-bloqueio').value || null;
+
+            if (!dataBloqueio) {
+                alert('Selecione uma data para bloquear.');
+                return;
+            }
+
+            try {
+                const { error } = await _supabase.from('horarios_bloqueados').insert([
+                    { data_bloqueio: dataBloqueio, horario_bloqueio: horarioBloqueio }
+                ]);
+
+                if (error) throw error;
+
+                alert('Bloqueio efetuado com sucesso!');
+                carregarListaBloqueios();
+            } catch (err) {
+                console.error(err);
+                alert('Erro ao registrar bloqueio.');
+            }
+        }
+
+        async function carregarListaBloqueios() {
+            const container = document.getElementById('admin-lista-bloqueios');
+            container.innerHTML = 'A carregar...';
+
+            try {
+                const { data, error } = await _supabase
+                    .from('horarios_bloqueados')
+                    .select('*')
+                    .order('data_bloqueio', { ascending: true });
+
+                if (error) throw error;
+
+                container.innerHTML = '';
+                if (data.length === 0) {
+                    container.innerHTML = '<p class="text-slate-400 text-xs">Nenhum bloqueio ativo.</p>';
+                    return;
+                }
+
+                data.forEach(b => {
+                    const desc = b.horario_bloqueio ? `Às ${b.horario_bloqueio}` : 'Dia Inteiro';
+                    const div = document.createElement('div');
+                    div.className = "bg-slate-900 p-2 rounded-lg border border-slate-700 flex justify-between items-center text-xs";
+                    div.innerHTML = `
+                        <div><span class="font-bold text-red-400">${b.data_bloqueio}</span> (${desc})</div>
+                        <button onclick="removerBloqueio(${b.id})" class="text-red-400 hover:text-red-300 font-bold underline">Desbloquear</button>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<p class="text-red-400 text-xs">Erro ao carregar bloqueios.</p>';
+            }
+        }
+
+        async function removerBloqueio(idBloqueio) {
+            try {
+                const { error } = await _supabase.from('horarios_bloqueados').delete().eq('id', idBloqueio);
+                if (error) throw error;
+                carregarListaBloqueios();
+            } catch (err) {
+                console.error(err);
+                alert('Erro ao remover bloqueio.');
+            }
+        }
+
+        window.onload = () => {
+            carregarHorariosDisponiveis();
+        };
+    </script>
+</body>
+</html>
